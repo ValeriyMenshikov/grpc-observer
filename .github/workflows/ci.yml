@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+      - run: uv run --group dev ruff check .
+      - run: uv run --group dev ruff format --check .
+
+  test:
+    name: test (python ${{ matrix.python }}, ${{ matrix.deps }} deps)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13", "3.14"]
+        # minimum: the floors from pyproject.toml (grpcio, protobuf, googleapis-common-protos), see the markers
+        # there for newer Pythons. latest: the newest releases, regardless of uv.lock.
+        deps: [minimum, latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+      - run: uv venv --python ${{ matrix.python }}
+      - name: Install the package with minimum dependencies
+        if: matrix.deps == 'minimum'
+        run: uv pip install --resolution lowest-direct -e ".[status]"
+      - name: Install the package with latest dependencies
+        if: matrix.deps == 'latest'
+        run: uv pip install --upgrade -e ".[status]"
+      # Test tools only; they do not touch grpcio / protobuf.
+      - run: uv pip install pytest allure-pytest
+      - run: uv pip list
+      - run: uv run --no-sync pytest -v -rs
+
+  # Without the [status] extra rich statuses come as {"raw": ...} and the decoding tests are skipped.
+  test-core-only:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+      - run: uv venv --python 3.14
+      - run: uv pip install -e . pytest
+      - name: googleapis-common-protos must not be installed
+        run: uv run --no-sync python -c "import grpc_observer.status as s, sys; sys.exit(s.status_pb2 is not None)"
+      - run: uv run --no-sync pytest -v -rs
