@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v7
       - run: uv run --group dev ruff check .
       - run: uv run --group dev ruff format --check .
 
@@ -26,7 +26,7 @@ jobs:
         deps: [minimum, latest]
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v7
       - run: uv venv --python ${{ matrix.python }}
       - name: Install the package with minimum dependencies
         if: matrix.deps == 'minimum'
@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v7
       - run: uv venv --python 3.14
       - run: uv pip install -e . pytest
       - name: googleapis-common-protos must not be installed
